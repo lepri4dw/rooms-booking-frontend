@@ -13,10 +13,8 @@ const UserDashboard = () => {
     const allBookings = useSelector(selectBookings);
     const rooms = useSelector(selectAllRooms);
 
-    // Mock current user ID (in a real app, this would come from authentication)
     const currentUserId = 1;
 
-    // Filter bookings for the current user
     const userBookings = allBookings.filter(booking => booking.userId === currentUserId);
 
     const handleTabChange = (event, newValue) => {
@@ -28,7 +26,6 @@ const UserDashboard = () => {
         return room ? room.roomNumber : 'Unknown';
     };
 
-    // Filter bookings based on status for each tab
     const filteredBookings = tabValue === 0
         ? userBookings
         : userBookings.filter(booking => {

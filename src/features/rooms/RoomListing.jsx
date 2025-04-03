@@ -1,30 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import {
     Box, Typography, Grid, Card, CardContent, CardActions,
     Button, Chip, TextField, FormControl, InputLabel,
-    Select, MenuItem, Paper, Table, TableBody, TableCell,
-    TableContainer, TableHead, TableRow
+    Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import {
     fetchRooms,
     selectAllRooms,
     setSelectedRoom,
     setSelectedDate,
-    selectSelectedDate
+    selectSelectedDate,
+    createBooking
 } from './roomsSlice';
 import dayjs from 'dayjs';
 
 const RoomListing = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const rooms = useSelector(selectAllRooms);
     const selectedDate = useSelector(selectSelectedDate);
     const [filter, setFilter] = useState({
         roomNumber: '',
         capacity: '',
         feature: ''
+    });
+
+    // State for booking dialog
+    const [openBookingDialog, setOpenBookingDialog] = useState(false);
+    const [selectedRoomForBooking, setSelectedRoomForBooking] = useState(null);
+    const [bookingDate, setBookingDate] = useState(dayjs(selectedDate));
+    const [bookingData, setBookingData] = useState({
+        startTime: '',
+        endTime: '',
+        purpose: ''
     });
 
     useEffect(() => {
@@ -45,7 +57,40 @@ const RoomListing = () => {
 
     const handleRoomSelect = (room) => {
         dispatch(setSelectedRoom(room));
-        // Navigate to room detail page in a real app
+        navigate(`/rooms/${room.id}`);
+    };
+
+    // Booking dialog handlers
+    const handleOpenBookingDialog = (room) => {
+        setSelectedRoomForBooking(room);
+        setOpenBookingDialog(true);
+    };
+
+    const handleCloseBookingDialog = () => {
+        setOpenBookingDialog(false);
+        setBookingData({ startTime: '', endTime: '', purpose: '' });
+    };
+
+    const handleBookingDateChange = (newDate) => {
+        setBookingDate(newDate);
+    };
+
+    const handleBookingDataChange = (field, value) => {
+        setBookingData({
+            ...bookingData,
+            [field]: value
+        });
+    };
+
+    const handleSubmitBooking = () => {
+        dispatch(createBooking({
+            roomId: selectedRoomForBooking.id,
+            date: bookingDate.toISOString().split('T')[0],
+            ...bookingData,
+            userId: 1, // In a real app, get this from auth state
+        }));
+
+        handleCloseBookingDialog();
     };
 
     const filteredRooms = rooms.filter(room => {
@@ -81,7 +126,6 @@ const RoomListing = () => {
                         </LocalizationProvider>
                     </Grid>
 
-                    {/* Остальной код компонента */}
                     <Grid item xs={12} sm={6} md={3}>
                         <TextField
                             name="roomNumber"
@@ -161,6 +205,7 @@ const RoomListing = () => {
                                 <Button
                                     size="small"
                                     color="secondary"
+                                    onClick={() => handleOpenBookingDialog(room)}
                                 >
                                     Забронировать
                                 </Button>
@@ -169,6 +214,91 @@ const RoomListing = () => {
                     </Grid>
                 ))}
             </Grid>
+
+            {/* Booking Dialog */}
+            <Dialog open={openBookingDialog} onClose={handleCloseBookingDialog}>
+                <DialogTitle>
+                    {selectedRoomForBooking ? `Забронировать аудиторию ${selectedRoomForBooking.roomNumber}` : 'Забронировать аудиторию'}
+                </DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2} sx={{ mt: 1, minWidth: '300px' }}>
+                        <Grid item xs={12}>
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <DatePicker
+                                    label="Выберите дату"
+                                    value={bookingDate}
+                                    onChange={handleBookingDateChange}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                        },
+                                    }}
+                                />
+                            </LocalizationProvider>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <TimePicker
+                                    label="Время начала"
+                                    value={bookingData.startTime ? dayjs(bookingDate).hour(bookingData.startTime.split(':')[0]).minute(bookingData.startTime.split(':')[1]) : null}
+                                    onChange={(newValue) => {
+                                        if (newValue) {
+                                            const hours = newValue.hour().toString().padStart(2, '0');
+                                            const minutes = newValue.minute().toString().padStart(2, '0');
+                                            handleBookingDataChange('startTime', `${hours}:${minutes}`);
+                                        }
+                                    }}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                        },
+                                    }}
+                                />
+                            </LocalizationProvider>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <TimePicker
+                                    label="Время окончания"
+                                    value={bookingData.endTime ? dayjs(bookingDate).hour(bookingData.endTime.split(':')[0]).minute(bookingData.endTime.split(':')[1]) : null}
+                                    onChange={(newValue) => {
+                                        if (newValue) {
+                                            const hours = newValue.hour().toString().padStart(2, '0');
+                                            const minutes = newValue.minute().toString().padStart(2, '0');
+                                            handleBookingDataChange('endTime', `${hours}:${minutes}`);
+                                        }
+                                    }}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                        },
+                                    }}
+                                />
+                            </LocalizationProvider>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Цель бронирования"
+                                value={bookingData.purpose}
+                                onChange={(e) => handleBookingDataChange('purpose', e.target.value)}
+                                fullWidth
+                                multiline
+                                rows={2}
+                            />
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseBookingDialog}>Отмена</Button>
+                    <Button
+                        onClick={handleSubmitBooking}
+                        color="primary"
+                        disabled={!bookingData.startTime || !bookingData.endTime || !bookingData.purpose}
+                    >
+                        Забронировать
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

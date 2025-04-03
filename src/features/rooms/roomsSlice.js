@@ -2,31 +2,28 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Mock data for rooms
 const initialRooms = Array.from({ length: 15 }, (_, i) => ({
     id: i + 1,
     roomNumber: `${201 + i}`,
-    capacity: Math.floor(Math.random() * 15) + 20, // Random capacity between 20-35
+    capacity: Math.floor(Math.random() * 11) + 15,
     features: ['whiteboard', ...(Math.random() > 0.5 ? ['projector'] : []), ...(Math.random() > 0.7 ? ['computers'] : [])]
 }));
 
-// Mock data for schedule
 const generateMockSchedule = () => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     const timeSlots = [
-        { start: '08:00', end: '09:30' },
-        { start: '09:45', end: '11:15' },
-        { start: '11:30', end: '13:00' },
-        { start: '13:30', end: '15:00' },
-        { start: '15:15', end: '16:45' },
-        { start: '17:00', end: '18:30' }
+        {start: '09:30', end: '10:50'},
+        {start: '11:00', end: '12:20'},
+        {start: '12:30', end: '13:50'},
+        {start: '14:00', end: '15:20'},
+        {start: '15:30', end: '16:50'},
+        {start: '17:00', end: '18:20'}
     ];
 
     const schedule = [];
 
     initialRooms.forEach(room => {
         days.forEach(day => {
-            // Create 2-3 random classes per day for each room
             const numClasses = Math.floor(Math.random() * 2) + 2;
             const usedTimeSlots = new Set();
 
@@ -45,8 +42,8 @@ const generateMockSchedule = () => {
                     day,
                     startTime: timeSlot.start,
                     endTime: timeSlot.end,
-                    courseName: `Course ${Math.floor(Math.random() * 10) + 1}`,
-                    instructor: `Professor ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`
+                    courseName: `Группа ${Math.floor(Math.random() * 10) + 1}`,
+                    instructor: `Преподователь ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`
                 });
             }
         });
@@ -55,7 +52,6 @@ const generateMockSchedule = () => {
     return schedule;
 };
 
-// Mock data for bookings
 const generateMockBookings = () => {
     const bookings = [];
     const today = new Date();
@@ -63,10 +59,10 @@ const generateMockBookings = () => {
     for (let i = 0; i < 20; i++) {
         const roomId = Math.floor(Math.random() * 15) + 1;
         const date = new Date(today);
-        date.setDate(date.getDate() + Math.floor(Math.random() * 14)); // Random date within next 2 weeks
+        date.setDate(date.getDate() + Math.floor(Math.random() * 14));
 
-        const startHour = Math.floor(Math.random() * 8) + 10; // Between 10 and 18
-        const endHour = startHour + 1 + Math.floor(Math.random() * 2); // 1-3 hours long
+        const startHour = Math.floor(Math.random() * 8) + 10;
+        const endHour = startHour + 1 + Math.floor(Math.random() * 2);
 
         bookings.push({
             id: i + 1,
@@ -75,7 +71,7 @@ const generateMockBookings = () => {
             date: date.toISOString().split('T')[0],
             startTime: `${startHour}:00`,
             endTime: `${endHour}:00`,
-            purpose: `Group study session ${i + 1}`,
+            purpose: `Подготовка курсовой`,
             status: ['pending', 'approved', 'rejected'][Math.floor(Math.random() * 3)]
         });
     }
@@ -93,15 +89,12 @@ const initialState = {
     selectedDate: new Date().toISOString().split('T')[0],
 };
 
-// Async thunks would go here to fetch from your Django API
 export const fetchRooms = createAsyncThunk(
     'rooms/fetchRooms',
     async () => {
-        // In a real app, you'd use axios to fetch from your Django backend
         // const response = await axios.get('/api/rooms/');
         // return response.data;
 
-        // For now, just return the mock data
         return initialRooms;
     }
 );
@@ -112,7 +105,6 @@ export const createBooking = createAsyncThunk(
         // In a real app: const response = await axios.post('/api/bookings/', bookingData);
         // return response.data;
 
-        // For now, simulate a successful booking
         return {
             id: Date.now(),
             ...bookingData,
@@ -133,7 +125,6 @@ const roomsSlice = createSlice({
         },
         filterAvailableRooms: (state, action) => {
             const { date, startTime, endTime } = action.payload;
-            // Logic to filter available rooms based on date and time would go here
         },
     },
     extraReducers: (builder) => {
@@ -169,7 +160,6 @@ export const selectRoomAvailability = (state, roomId, date) => {
         booking => booking.roomId === roomId && booking.date === date && booking.status === 'approved'
     );
 
-    // Return both the regular schedule and bookings for this room
     return { schedule, bookings };
 };
 
